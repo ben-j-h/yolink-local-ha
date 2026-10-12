@@ -2845,3 +2845,60 @@ def test_water_meter_controller_keeps_recent_state_when_poll_cannot_connect() ->
     )
     assert meter.available is True
     assert battery.available is True
+
+
+SOIL_HTTP_GETSTATE_DATA = {
+    # Hub YS1606 060A, SoilThcSensor.getState "data", captured 2026-10-12.
+    "online": True,
+    "state": {
+        "alarm": {"lowTemp": False, "highTemp": False, "lowHumidity": True},
+        "battery": 2,
+        "state": {"temperature": 25.4, "humidity": 0, "conductivity": 0},
+        "attributes": {"alertInterval": 0, "reportInterval": 5},
+        "version": "0924",
+        "tz": -7,
+        "loraInfo": {"devNetType": "A", "signal": -32, "gateways": 1},
+    },
+    "reportAt": "2026-10-12T11:27:13.143Z",
+}
+
+SOIL_MQTT_REPORT_DATA = {
+    # Hub YS1606 060A, SoilThcSensor.Report MQTT "data", captured 2026-10-12.
+    "alarm": {"lowTemp": False, "highTemp": False, "lowHumidity": True},
+    "battery": 2,
+    "state": {"temperature": 25.2, "humidity": 31.5, "conductivity": 820},
+    "attributes": {"alertInterval": 0, "reportInterval": 5},
+    "version": "0924",
+    "loraInfo": {"devNetType": "A", "signal": -32, "gateways": 1},
+}
+
+
+def test_soil_thc_sensor_reads_real_hub_http_and_mqtt_payloads() -> None:
+    """Soil entities should read the hub's real getState and MQTT Report shapes."""
+    coordinator = make_coordinator()
+    device = make_device(
+        device_id=make_device_id("soil-real"),
+        device_type="SoilThcSensor",
+        display_type="SoilThcSensor",
+        model="YS8009-UC",
+    )
+    coordinator._devices[device.device_id] = device
+    coordinator._states[device.device_id] = coordinator._normalize_http_state(
+        SOIL_HTTP_GETSTATE_DATA, device
+    )
+
+    by_type = {type(e): e for e in build_sensor_entities(coordinator, device)}
+    assert by_type[YoLocalTemperatureSensor].native_value == 25.4
+    assert by_type[YoLocalHumiditySensor].native_value == 0
+    assert by_type[YoLocalConductivitySensor].native_value == 0
+    assert by_type[YoLocalBatterySensor].native_value == 50
+    assert by_type[YoLocalFirmwareSensor].native_value == "0924"
+
+    coordinator._states[device.device_id] = coordinator._merge_device_state(
+        device.device_id, SOIL_MQTT_REPORT_DATA
+    )
+
+    assert by_type[YoLocalTemperatureSensor].native_value == 25.2
+    assert by_type[YoLocalHumiditySensor].native_value == 31.5
+    assert by_type[YoLocalConductivitySensor].native_value == 820
+    assert by_type[YoLocalBatterySensor].native_value == 50

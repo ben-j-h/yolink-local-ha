@@ -460,6 +460,8 @@ class YoLocalCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
         self, state: dict[str, Any], device: Device | None = None
     ) -> dict[str, Any]:
         """Normalize an HTTP getState payload to the coordinator's canonical shape."""
+        if device is not None and device.device_type == "SoilThcSensor":
+            state = self._flatten_soil_http_state(state)
         normalized_state = (
             self._normalize_mqtt_event(device, state)
             if device is not None and device.device_type == "WaterMeterController"
@@ -475,6 +477,23 @@ class YoLocalCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
         ):
             normalized_state["lastReportedAt"] = dt_util.utcnow().isoformat()
         return normalized_state
+
+    def _flatten_soil_http_state(self, state: dict[str, Any]) -> dict[str, Any]:
+        """Lift YS8009 readings out of getState's extra `state.state` level.
+
+        The hub returns soil readings at `state.state.{temperature,...}` over
+        HTTP but at `state.{temperature,...}` once an MQTT Report is
+        normalized, which is where the entities read them.
+        """
+        nested_state = state.get("state")
+        if not isinstance(nested_state, dict):
+            return state
+        readings = nested_state.get("state")
+        if not isinstance(readings, dict):
+            return state
+        flattened = {k: v for k, v in nested_state.items() if k != "state"}
+        flattened.update(readings)
+        return {**state, "state": flattened}
 
     def _mark_unreachable(self, state: dict[str, Any]) -> dict[str, Any]:
         """Mark a device unavailable after repeated read-only getState failures."""

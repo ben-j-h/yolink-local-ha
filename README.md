@@ -47,7 +47,7 @@ Matter can leave YoLink sensors stale when battery runs out, which can cause inc
 
 Additional device types can be added -- contributions welcome.
 
-`SoilThcSensor` (YS8009-UC) support is **untested on real hardware**. As of Local Hub firmware `060A` the hub recognizes `SoilThcSensor.getState`, but it does not list the YS8009 in `Home.getDeviceList` or publish its events on local MQTT, so the sensor never reaches this integration. YoLink has confirmed this is a hub firmware bug and says a fix is coming. Once the hub exposes it, the integration reports soil temperature, volumetric moisture (as `Humidity`), and electrical conductivity (µS/cm), plus the common `Battery` / `Firmware` / `Last reported` entities. The payload field names follow the cloud API and may need adjusting.
+`SoilThcSensor` (YS8009-UC) needs a Local Hub update YoLink pushed in October 2026. The hub still reports firmware `060A`; before the update it did not list the YS8009 in `Home.getDeviceList` or publish its events on local MQTT. With the update, both work. The integration reports soil temperature, volumetric moisture (as `Humidity`), and electrical conductivity (µS/cm), plus the common `Battery` / `Firmware` / `Last reported` entities. Over HTTP the hub nests the readings one level deeper (`state.state`) than THSensor; the integration flattens that so HTTP polls and MQTT reports land in the same place.
 
 ## Additional exposed entities/diagnostics
 
