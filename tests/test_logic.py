@@ -2847,29 +2847,72 @@ def test_water_meter_controller_keeps_recent_state_when_poll_cannot_connect() ->
     assert battery.available is True
 
 
+# Verbatim "data" payloads from a YS8009-UC (fw 0924) on Local Hub YS1606-UC
+# fw 060A after YoLink's 2026-10-12 update. Captured 2026-10-12 with the sensor
+# dry on a desk, so moisture and conductivity read 0.
 SOIL_HTTP_GETSTATE_DATA = {
-    # Hub YS1606 060A, SoilThcSensor.getState "data", captured 2026-10-12.
+    # SoilThcSensor.getState at 11:48Z.
     "online": True,
     "state": {
-        "alarm": {"lowTemp": False, "highTemp": False, "lowHumidity": True},
+        "alarm": {
+            "lowTemp": False,
+            "highTemp": False,
+            "lowHumidity": True,
+            "highHumidity": False,
+            "lowConductivity": True,
+            "highConductivity": False,
+            "period": False,
+        },
         "battery": 2,
         "state": {"temperature": 25.4, "humidity": 0, "conductivity": 0},
-        "attributes": {"alertInterval": 0, "reportInterval": 5},
+        "attributes": {
+            "alertInterval": 0,
+            "reportInterval": 5,
+            "tempLimit": {"max": 40, "min": 10},
+            "humidityLimit": {"max": 70, "min": 20},
+            "conductivityLimit": {"max": 4000, "min": 500},
+        },
         "version": "0924",
         "tz": -7,
-        "loraInfo": {"devNetType": "A", "signal": -32, "gateways": 1},
+        "loraInfo": {
+            "devNetType": "A",
+            "signal": -32,
+            "gatewayId": "d88b4c160600027f",
+            "gateways": 1,
+            "location": {"latitude": 0, "longitude": 0, "altitude": 0},
+        },
     },
     "reportAt": "2026-10-12T11:27:13.143Z",
 }
 
 SOIL_MQTT_REPORT_DATA = {
-    # Hub YS1606 060A, SoilThcSensor.Report MQTT "data", captured 2026-10-12.
-    "alarm": {"lowTemp": False, "highTemp": False, "lowHumidity": True},
+    # SoilThcSensor.Report on ylsubnet/<net>/+/report after a button press at 12:11:58Z.
+    "alarm": {
+        "lowTemp": False,
+        "highTemp": False,
+        "lowHumidity": True,
+        "highHumidity": False,
+        "lowConductivity": True,
+        "highConductivity": False,
+        "period": False,
+    },
     "battery": 2,
-    "state": {"temperature": 25.2, "humidity": 31.5, "conductivity": 820},
-    "attributes": {"alertInterval": 0, "reportInterval": 5},
+    "state": {"temperature": 25.2, "humidity": 0, "conductivity": 0},
+    "attributes": {
+        "alertInterval": 0,
+        "reportInterval": 5,
+        "tempLimit": {"max": 40, "min": 10},
+        "humidityLimit": {"max": 70, "min": 20},
+        "conductivityLimit": {"max": 4000, "min": 500},
+    },
     "version": "0924",
-    "loraInfo": {"devNetType": "A", "signal": -32, "gateways": 1},
+    "tz": -7,
+    "loraInfo": {
+        "devNetType": "A",
+        "signal": -37,
+        "gatewayId": "d88b4c160600027f",
+        "gateways": 1,
+    },
 }
 
 
@@ -2899,6 +2942,7 @@ def test_soil_thc_sensor_reads_real_hub_http_and_mqtt_payloads() -> None:
     )
 
     assert by_type[YoLocalTemperatureSensor].native_value == 25.2
-    assert by_type[YoLocalHumiditySensor].native_value == 31.5
-    assert by_type[YoLocalConductivitySensor].native_value == 820
+    assert by_type[YoLocalHumiditySensor].native_value == 0
+    assert by_type[YoLocalConductivitySensor].native_value == 0
     assert by_type[YoLocalBatterySensor].native_value == 50
+    assert by_type[YoLocalFirmwareSensor].native_value == "0924"
