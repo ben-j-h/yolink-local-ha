@@ -11,7 +11,13 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, UnitOfPower, UnitOfTemperature, UnitOfVolume
+from homeassistant.const import (
+    PERCENTAGE,
+    UnitOfConductivity,
+    UnitOfPower,
+    UnitOfTemperature,
+    UnitOfVolume,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -117,6 +123,14 @@ def build_sensor_entities(
                 ("amount", "Recent usage", "recentUsage"),
                 ("duration", "Recent usage duration", "recentUsage"),
             )
+        )
+    elif device.device_type == "SoilThcSensor":
+        entities.extend(
+            [
+                YoLocalTemperatureSensor(coordinator, device),
+                YoLocalHumiditySensor(coordinator, device),
+                YoLocalConductivitySensor(coordinator, device),
+            ]
         )
 
     return entities
@@ -295,6 +309,25 @@ class YoLocalHumiditySensor(YoLocalEntity, SensorEntity):
     def native_value(self) -> float | None:
         """Return the humidity."""
         return self.state_value("humidity", fallback=True)
+
+
+class YoLocalConductivitySensor(YoLocalEntity, SensorEntity):
+    """Soil electrical conductivity sensor for YoLink SoilThcSensor."""
+
+    _attr_device_class = SensorDeviceClass.CONDUCTIVITY
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfConductivity.MICROSIEMENS_PER_CM
+    _attr_name = "Conductivity"
+
+    def __init__(self, coordinator: YoLocalCoordinator, device) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, device)
+        self._attr_unique_id = f"{device.device_id}_conductivity"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the soil electrical conductivity."""
+        return self.state_value("conductivity", fallback=True)
 
 
 class YoLocalTHModeSensor(YoLocalEntity, SensorEntity):

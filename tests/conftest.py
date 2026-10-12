@@ -267,6 +267,7 @@ def _install_homeassistant_stubs() -> None:
         TEMPERATURE = "temperature"
         HUMIDITY = "humidity"
         WATER = "water"
+        CONDUCTIVITY = "conductivity"
 
     class SensorStateClass:
         MEASUREMENT = "measurement"
@@ -339,9 +340,13 @@ def _install_homeassistant_stubs() -> None:
     class UnitOfVolume:
         LITERS = "L"
 
+    class UnitOfConductivity:
+        MICROSIEMENS_PER_CM = "μS/cm"
+
     const.UnitOfTemperature = UnitOfTemperature
     const.UnitOfPower = UnitOfPower
     const.UnitOfVolume = UnitOfVolume
+    const.UnitOfConductivity = UnitOfConductivity
 
     homeassistant.core = core
     homeassistant.config_entries = config_entries

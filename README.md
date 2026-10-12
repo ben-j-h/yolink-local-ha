@@ -39,12 +39,15 @@ Matter can leave YoLink sensors stale when battery runs out, which can cause inc
 | Manipulator | Valve, Sensor | Open/closed control, battery | YS4909-UC
 | MotionSensor | Binary Sensor | Motion detected, battery | YS7804-UC
 | Outlet | Switch, Sensor | On/off state, power | YS6614-UC
+| SoilThcSensor | Sensor | Soil temperature, moisture, conductivity, battery | YS8009-UC
 | TempSensor | Sensor Sensor | Temperature, battery | YS8004-UC
 | THSensor | Sensor | Temperature, humidity, battery | YS8003-UC, YS8005-UC
 | TiltSensor | Binary Sensor | Temperature, battery | YS7706-UC
 | WaterMeterController | Valve, Binary Sensor, Sensor | Valve control, water flow, alarms, meter and usage readings, battery | YS5009-UC
 
 Additional device types can be added -- contributions welcome.
+
+`SoilThcSensor` (YS8009-UC) support is **untested on real hardware**. As of Local Hub firmware `060A` the hub recognizes `SoilThcSensor.getState`, but it does not list the YS8009 in `Home.getDeviceList` or publish its events on local MQTT, so the sensor never reaches this integration. YoLink has confirmed this is a hub firmware bug and says a fix is coming. Once the hub exposes it, the integration reports soil temperature, volumetric moisture (as `Humidity`), and electrical conductivity (µS/cm), plus the common `Battery` / `Firmware` / `Last reported` entities. The payload field names follow the cloud API and may need adjusting.
 
 ## Additional exposed entities/diagnostics
 
@@ -187,6 +190,7 @@ Required device serials for full live type coverage:
 - `YOLINK_LEAK_7903_SERIAL`
 - `YOLINK_TEMP_8004_SERIAL`
 - `YOLINK_TILT_7706_SERIAL`
+- `YOLINK_SOIL_8009_SERIAL`
 - `YOLINK_LOCK_MODEL_NUMBER_SERIAL`
 
 Optional:

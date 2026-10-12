@@ -32,8 +32,12 @@ from custom_components.yolocal.coordinator import YoLocalCoordinator
 from custom_components.yolocal.entity import YoLocalEntity
 from custom_components.yolocal.sensor import (
     YoLocalBatterySensor,
+    YoLocalConductivitySensor,
+    YoLocalFirmwareSensor,
+    YoLocalHumiditySensor,
     YoLocalLastReportedSensor,
     YoLocalOutletPowerSensor,
+    YoLocalTemperatureSensor,
     YoLocalTHLimitSensor,
     YoLocalWaterMeterReadingSensor,
     build_sensor_entities,
@@ -916,6 +920,69 @@ def test_battery_sensor_is_created_only_when_payload_has_battery() -> None:
 
     assert not any(isinstance(entity, YoLocalBatterySensor) for entity in door_entities)
     assert any(isinstance(entity, YoLocalBatterySensor) for entity in unknown_entities)
+
+
+def test_soil_thc_sensor_builds_measurement_entities() -> None:
+    """SoilThcSensor should expose temperature, humidity, conductivity and battery."""
+    coordinator = make_coordinator()
+    device = make_device(
+        device_id=make_device_id("soil"),
+        device_type="SoilThcSensor",
+        display_type="SoilThcSensor",
+        model="YS8009-UC",
+    )
+    coordinator._states[device.device_id] = {
+        "online": True,
+        "state": {
+            "battery": 4,
+            "temperature": 22.5,
+            "humidity": 41.2,
+            "conductivity": 350,
+            "version": "0101",
+        },
+    }
+
+    entities = build_sensor_entities(coordinator, device)
+    by_type = {type(entity): entity for entity in entities}
+
+    assert YoLocalBatterySensor in by_type
+    assert YoLocalTemperatureSensor in by_type
+    assert YoLocalHumiditySensor in by_type
+    assert YoLocalConductivitySensor in by_type
+    assert YoLocalFirmwareSensor in by_type
+    assert YoLocalLastReportedSensor in by_type
+
+    conductivity = by_type[YoLocalConductivitySensor]
+    assert conductivity.native_value == 350
+    assert conductivity._attr_unique_id == f"{device.device_id}_conductivity"
+    assert by_type[YoLocalTemperatureSensor].native_value == 22.5
+    assert by_type[YoLocalHumiditySensor].native_value == 41.2
+
+
+def test_normalize_mqtt_event_skips_empty_soil_overwrites() -> None:
+    """Soil MQTT normalization should not overwrite real values with sentinels."""
+    coordinator = make_coordinator()
+    device = make_device(
+        device_id=make_device_id("soil-normalize"),
+        device_type="SoilThcSensor",
+    )
+
+    normalized = coordinator._normalize_mqtt_event(
+        device,
+        {
+            "state": "normal",
+            "temperature": None,
+            "humidity": 40,
+            "conductivity": None,
+            "version": "0101",
+        },
+    )
+
+    assert normalized["state"] == {
+        "humidity": 40,
+        "state": "normal",
+        "version": "0101",
+    }
 
 
 def test_outlet_switch_reads_nested_and_flat_state() -> None:

@@ -507,9 +507,9 @@ class YoLocalCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
             if key in {"state", "online", "reportAt", "lastReportedAt"}:
                 continue
             if (
-                device.device_type == "THSensor"
+                device.device_type in {"THSensor", "SoilThcSensor"}
                 and value is None
-                and key in {"temperature", "humidity", "mode", "version"}
+                and key in {"temperature", "humidity", "conductivity", "mode", "version"}
             ):
                 continue
             nested_state[key] = value
