@@ -40,7 +40,7 @@ Matter can leave YoLink sensors stale when battery runs out, which can cause inc
 | MotionSensor | Binary Sensor | Motion detected, battery | YS7804-UC
 | Outlet | Switch, Sensor | On/off state, power | YS6614-UC
 | TempSensor | Sensor Sensor | Temperature, battery | YS8004-UC
-| THSensor | Sensor | Temperature, humidity, battery | YS8003-UC, YS8005-UC
+| THSensor | Sensor | Temperature, humidity, battery | YS8003-UC, YS8005-UC, YS8007-UC
 | TiltSensor | Binary Sensor | Temperature, battery | YS7706-UC
 | WaterMeterController | Valve, Binary Sensor, Sensor | Valve control, water flow, alarms, meter and usage readings, battery | YS5009-UC
 
