@@ -158,6 +158,16 @@ class YoLocalCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
                     continue
                 refreshed_states[device_id] = self._mark_unreachable(current_state)
             elif incoming_state is not None:
+                if self._is_older_report(current_state, incoming_state):
+                    # getState can lag a just-delivered MQTT report; reportAt
+                    # versions the whole snapshot, so keep the newer state.
+                    _LOGGER.debug(
+                        "Ignoring stale getState for %s (reported %s, have %s)",
+                        device_id,
+                        incoming_state.get("lastReportedAt"),
+                        current_state.get("lastReportedAt"),
+                    )
+                    continue
                 refreshed_states[device_id] = self._merge_state_payload(
                     current_state,
                     incoming_state,
@@ -185,6 +195,19 @@ class YoLocalCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
             return device_id, None, False
 
         return device_id, self._normalize_http_state(state, device), False
+
+    def _is_older_report(
+        self,
+        current_state: dict[str, Any],
+        incoming_state: dict[str, Any],
+    ) -> bool:
+        """Return True when an incoming payload was reported before the cached one."""
+        try:
+            current = dt_util.parse_datetime(current_state.get("lastReportedAt") or "")
+            incoming = dt_util.parse_datetime(incoming_state.get("lastReportedAt") or "")
+        except (TypeError, ValueError):
+            return False
+        return current is not None and incoming is not None and incoming < current
 
     def _has_recent_report(self, state: dict[str, Any]) -> bool:
         """Return True when a state has reported within the stale window."""
