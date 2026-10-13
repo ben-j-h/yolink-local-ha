@@ -159,19 +159,14 @@ class YoLocalCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
                 refreshed_states[device_id] = self._mark_unreachable(current_state)
             elif incoming_state is not None:
                 if self._is_older_report(current_state, incoming_state):
-                    # getState can lag a just-delivered MQTT report; keep the
-                    # newer state and take only availability from the poll.
+                    # getState can lag a just-delivered MQTT report; reportAt
+                    # versions the whole snapshot, so keep the newer state.
                     _LOGGER.debug(
                         "Ignoring stale getState for %s (reported %s, have %s)",
                         device_id,
                         incoming_state.get("lastReportedAt"),
                         current_state.get("lastReportedAt"),
                     )
-                    if "online" in incoming_state:
-                        refreshed_states[device_id] = {
-                            **current_state,
-                            "online": incoming_state["online"],
-                        }
                     continue
                 refreshed_states[device_id] = self._merge_state_payload(
                     current_state,

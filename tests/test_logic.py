@@ -1680,8 +1680,50 @@ def test_async_update_data_ignores_getstate_older_than_mqtt_report() -> None:
     )
 
 
-def test_async_update_data_stale_getstate_still_restores_online() -> None:
-    """A stale getState should still bring an offline device back online."""
+def _run_stale_availability_case(
+    cached_online: bool, polled_online: bool
+) -> tuple[dict[str, object], dict[str, object]]:
+    """Poll a stale getState with the given online flags and return the result."""
+    coordinator = make_coordinator()
+    device = make_device(device_id=make_device_id("gate"), device_type="DoorSensor")
+    coordinator._devices[device.device_id] = device
+    cached = {
+        "online": cached_online,
+        "lastReportedAt": "2026-10-13T13:58:46+00:00",
+        "state": {"state": "open"},
+    }
+    coordinator._states[device.device_id] = dict(cached)
+
+    async def get_state(_device: Device) -> dict[str, object]:
+        return {
+            "online": polled_online,
+            "reportAt": "2026-10-13T12:41:32Z",
+            "state": {"state": "closed"},
+        }
+
+    coordinator._client = SimpleNamespace(get_state=get_state, host="127.0.0.1")
+
+    refreshed = asyncio.run(coordinator._async_update_data())
+
+    return cached, refreshed[device.device_id]
+
+
+def test_async_update_data_stale_getstate_online_true_leaves_cache() -> None:
+    """A stale online=True snapshot must not restore an offline device."""
+    cached, refreshed = _run_stale_availability_case(False, True)
+
+    assert refreshed == cached
+
+
+def test_async_update_data_stale_getstate_online_false_leaves_cache() -> None:
+    """A stale online=False snapshot must not mark a fresher device unavailable."""
+    cached, refreshed = _run_stale_availability_case(True, False)
+
+    assert refreshed == cached
+
+
+def test_async_update_data_equal_report_getstate_restores_online() -> None:
+    """A getState with the same reportAt as the cache is current and merges."""
     coordinator = make_coordinator()
     device = make_device(device_id=make_device_id("gate"), device_type="DoorSensor")
     coordinator._devices[device.device_id] = device
@@ -1694,8 +1736,8 @@ def test_async_update_data_stale_getstate_still_restores_online() -> None:
     async def get_state(_device: Device) -> dict[str, object]:
         return {
             "online": True,
-            "reportAt": "2026-10-13T12:41:32Z",
-            "state": {"state": "closed"},
+            "reportAt": "2026-10-13T13:58:46Z",
+            "state": {"state": "open"},
         }
 
     coordinator._client = SimpleNamespace(get_state=get_state, host="127.0.0.1")
@@ -1703,7 +1745,6 @@ def test_async_update_data_stale_getstate_still_restores_online() -> None:
     refreshed = asyncio.run(coordinator._async_update_data())
 
     assert refreshed[device.device_id]["online"] is True
-    assert refreshed[device.device_id]["state"]["state"] == "open"
 
 
 def test_async_update_data_applies_newer_getstate() -> None:
